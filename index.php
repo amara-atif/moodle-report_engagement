@@ -28,6 +28,9 @@ require_once($CFG->dirroot . '/report/engagement/locallib.php');
 $id = required_param('id', PARAM_INT); // Course ID.
 $userid = optional_param('userid', 0, PARAM_INT);
 
+// for exporting report as csv
+$exportcsv = optional_param('exportcsv', 0, PARAM_INT);
+
 $pageparams = array('id' => $id);
 if ($userid) {
     $pageparams['userid'] = $userid;
@@ -63,6 +66,7 @@ $stradministration = get_string('administration');
 $strreports = get_string('reports');
 $renderer = $PAGE->get_renderer('report_engagement');
 
+if (!$exportcsv) // skip echo if exporting csv
 echo $OUTPUT->header();
 
 $heading = $userid ? 'userreport' : 'coursereport';
@@ -71,6 +75,8 @@ $info->course = $course->shortname;
 if (isset($user)) {
     $info->user = fullname($user);
 }
+
+if (!$exportcsv) // skip echo if exporting csv
 echo $OUTPUT->heading(get_string($heading, 'report_engagement', $info));
 
 $pluginman = core_plugin_manager::instance();
@@ -113,7 +119,7 @@ if (!$userid) { // Course report.
         uasort($data, 'report_engagement_sort_risks');
     }
 
-    echo $renderer->course_report(array_keys($indicators), $data);
+    echo $renderer->course_report(array_keys($indicators), $data, $exportcsv);
 } else { // User report.
     foreach ($indicators as $name => $path) {
         if (file_exists("$path/indicator.class.php")) {

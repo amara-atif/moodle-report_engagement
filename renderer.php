@@ -29,6 +29,9 @@ require_once($CFG->dirroot . '/report/engagement/locallib.php');
 require_once($CFG->dirroot . '/mod/engagement/indicator/rendererbase.php');
 require_once($CFG->libdir . '/tablelib.php');
 
+// allow csv manipulation
+require_once($CFG->libdir . '/csvlib.class.php');
+
 /**
  * Rendering methods for the engagement reports
  */
@@ -42,8 +45,8 @@ class report_engagement_renderer extends plugin_renderer_base {
      * @access public
      * @return void
      */
-    public function course_report($indicators, $data) {
-        global $DB, $COURSE;
+    public function course_report($indicators, $data, $exportcsv = 0) {
+        global $DB, $COURSE, $CFG;
         if (empty($data)) {
             return '';
         }
@@ -60,9 +63,23 @@ class report_engagement_renderer extends plugin_renderer_base {
         }
         $headers[] = get_string('total');
         $columns[] = 'total';
+		
+		// determine if exporting extra data column
+		$extracolumn = $DB->get_field_sql("SELECT configdata FROM {report_engagement} WHERE `course` = $COURSE->id AND `indicator` = 'reportextracolumn'");
+		if ($extracolumn) {
+			$extracolumnname = $DB->get_field_sql("SELECT itemname FROM {grade_items} WHERE `courseid` = $COURSE->id AND `id` = $extracolumn");
+			$headers[] = $extracolumnname;
+			$columns[] = 'reportextracolumn';
+		}
+		if ($exportcsv == 1) {
+			$csvwriter = new csv_export_writer();
+			$csvwriter->set_filename('report_engagement_' . date('Ymd_his' . '.csv'));
+			$csvwriter->add_data($headers);
+		}
+
         $table->define_headers($headers);
         $table->define_columns($columns);
-
+		
         $table->sortable(true, 'total', SORT_DESC);
         $table->no_sorting('username');
 
@@ -100,13 +117,45 @@ class report_engagement_renderer extends plugin_renderer_base {
                 $total_raw += $ind_value;
             }
             $row[] = sprintf("%.0f%%", $total * 100);
+			
+			// get data for extra column if needed
+			if ($extracolumn) {
+				$extradata = $DB->get_record_sql("SELECT * FROM {grade_grades} WHERE `userid` = $user AND `itemid` = $extracolumn");
+				$row[] = $extradata->finalgrade;
+			}
+			// add data to csvwriter if exporting csv
+			if ($exportcsv == 1) {
+				$csvwriter->add_data($row);
+			}
+			
+			if (!$exportcsv) // only add data to table if displaying for user			
             $table->add_data($row);
         }
 
         $html = $this->output->notification(get_string('reportdescription', 'report_engagement'));
-        ob_start();
+        
+		// get global settings
+		$settingsnames = array('queryspecifydatetime', 'querystartdatetime', 'queryenddatetime');
+		$querysettings = new stdClass();
+		foreach ($settingsnames as $name) {
+			$tempvar = $DB->get_record_sql("SELECT * FROM {report_engagement} WHERE course = $COURSE->id AND indicator = '$name'");
+			$querysettings->{"$name"} = $tempvar->configdata;
+		}
+		// show query limits if necessary
+		if (isset($querysettings->queryspecifydatetime) && $querysettings->queryspecifydatetime) {
+			$html .= $this->output->notification('query limit set: from ' . date('Y-m-d h:i:s', $querysettings->querystartdatetime) . ' to ' . date('Y-m-d h:i:s', $querysettings->queryenddatetime));
+		}
+				
+		ob_start();
         $table->finish_output();
         $html .= ob_get_clean();
+		
+		// do csv export if necessary
+		if ($exportcsv == 1) {
+			$csvwriter->download_file();
+			die();
+		}
+		
         return $html;
     }
 
