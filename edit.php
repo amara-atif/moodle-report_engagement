@@ -65,7 +65,7 @@ if ($mform->is_cancelled()) {
 
     // TODO: Process generic settings.
 	
-	// load up generic settings
+	// save generic settings
 	$settingsnames = array('queryspecifydatetime', 'querystartdatetime', 'queryenddatetime', 'reportextracolumn');
 	foreach ($settingsnames as $name) {
 		$record = new stdClass();
