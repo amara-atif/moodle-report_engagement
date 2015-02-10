@@ -46,7 +46,7 @@ class report_engagement_edit_form extends moodleform {
 		$mform->addElement('advcheckbox', 'queryspecifydatetime', 'limit query dates');
 		$mform->addElement('date_time_selector', 'querystartdatetime', 'query start date');
 		$mform->addElement('date_time_selector', 'queryenddatetime', 'query end date');
-		$gradeitems = $DB->get_records_sql("SELECT * FROM {grade_items} WHERE `courseid` = $COURSE->id");
+		$gradeitems = $DB->get_records_sql("SELECT * FROM {grade_items} WHERE courseid = $COURSE->id");
 		$columns[0] = 'none';
 		foreach ($gradeitems as $item) {
 			$columns[$item->id] = $item->itemname . " (id $item->id)";
