@@ -65,9 +65,11 @@ class report_engagement_renderer extends plugin_renderer_base {
         $columns[] = 'total';
 		
 		// determine if exporting extra data column
-		$extracolumn = $DB->get_field_sql("SELECT configdata FROM {report_engagement} WHERE `course` = $COURSE->id AND `indicator` = 'reportextracolumn'");
+		$params = array((int)$COURSE->id, 'reportextracolumn');
+		$extracolumn = $DB->get_field_sql("SELECT configdata FROM {report_engagement} WHERE course = ? AND indicator = ?", $params);
 		if ($extracolumn) {
-			$extracolumnname = $DB->get_field_sql("SELECT itemname FROM {grade_items} WHERE `courseid` = $COURSE->id AND `id` = $extracolumn");
+			$params = array($COURSE->id, $extracolumn);
+			$extracolumnname = $DB->get_field_sql("SELECT itemname FROM {grade_items} WHERE courseid = ? AND id = ?", $params);
 			$headers[] = $extracolumnname;
 			$columns[] = 'reportextracolumn';
 		}
@@ -120,7 +122,7 @@ class report_engagement_renderer extends plugin_renderer_base {
 			
 			// get data for extra column if needed
 			if ($extracolumn) {
-				$extradata = $DB->get_record_sql("SELECT * FROM {grade_grades} WHERE `userid` = $user AND `itemid` = $extracolumn");
+				$extradata = $DB->get_record_sql("SELECT * FROM {grade_grades} WHERE userid = $user AND itemid = $extracolumn");
 				$row[] = $extradata->finalgrade;
 			}
 			// add data to csvwriter if exporting csv
