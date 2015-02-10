@@ -64,7 +64,22 @@ if ($mform->is_cancelled()) {
     }
 
     // TODO: Process generic settings.
-
+	
+	// load up generic settings
+	$settingsnames = array('queryspecifydatetime', 'querystartdatetime', 'queryenddatetime', 'reportextracolumn');
+	foreach ($settingsnames as $name) {
+		$record = new stdClass();
+		$record->indicator = $name;
+		$record->course = $id;
+		$record->configdata = $formdata->{"$name"};
+		$curid = $DB->get_record_sql("SELECT `id` FROM {report_engagement} WHERE `course` = $id AND `indicator` = '$name'");
+		if ($curid->id) {
+			$record->id = $curid->id;
+			$DB->update_record('report_engagement', $record);
+		} else {
+			$DB->insert_record('report_engagement', $record);
+		}
+	}	
     // Process thresholds and other indicator specific settings.
     $configdata = array();
     foreach (array_keys($indicators) as $indicator) {
@@ -89,6 +104,14 @@ if ($indicators = $DB->get_records('report_engagement', array('course' => $id)))
         }
     }
 }
+
+// populate form
+$settingsnames = array('queryspecifydatetime', 'querystartdatetime', 'queryenddatetime', 'reportextracolumn');
+foreach ($settingsnames as $name) {
+	$tempvar = $DB->get_record_sql("SELECT * FROM {report_engagement} WHERE `course` = $id AND `indicator` = '$name'");
+	$data = array_merge($data, array($name => $tempvar->configdata));
+}
+
 $mform->set_data($data);
 
 add_to_log($course->id, 'course', 'report engagement edit', "report/engagement/edit.php?id=$id", $course->id);
