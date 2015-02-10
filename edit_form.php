@@ -31,7 +31,7 @@ require_once($CFG->libdir.'/formslib.php');
 class report_engagement_edit_form extends moodleform {
 
     protected function definition() {
-        global $CFG, $OUTPUT, $COURSE;
+        global $CFG, $OUTPUT, $COURSE, $DB;
 
         $mform =& $this->_form;
         $indicators = $this->_customdata['indicators'];
