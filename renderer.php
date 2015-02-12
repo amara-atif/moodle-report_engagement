@@ -188,8 +188,8 @@ class report_engagement_renderer extends plugin_renderer_base {
 		if (isset($querysettings->queryspecifydatetime) && $querysettings->queryspecifydatetime) {
 			$html .= $this->output->notification('query limit set: from ' . date('Y-m-d h:i:s', $querysettings->querystartdatetime) . ' to ' . date('Y-m-d h:i:s', $querysettings->queryenddatetime));
 		}
-		// TODO: show export csv button
-		
+		// show export csv link
+		$html .= $this->output->action_link(new moodle_url('/report/engagement/index.php', array('id' => $COURSE->id, 'exportcsv' => 1)), 'Download CSV');
 		
 		ob_start();
         $table->finish_output();
