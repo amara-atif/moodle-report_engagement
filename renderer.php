@@ -55,14 +55,39 @@ class report_engagement_renderer extends plugin_renderer_base {
         $table->define_baseurl(new moodle_url('/report/engagement/index.php', array('id' => $COURSE->id)));
         $headers = array();
         $columns = array();
+		
+		// for export
+		$headersexport = array();
+		$columnsexport = array();
+		
         $headers[] = get_string('username');
         $columns[] = 'username';
+		// for export
+		$headersforexport[] = get_string('idnumber');
+		$columnsforexport[] = 'idnumber';
+		
+		// get global settings
+		$settingsnames = array('queryspecifydatetime', 'querystartdatetime', 'queryenddatetime');
+		$querysettings = new stdClass();
+		foreach ($settingsnames as $name) {
+			$tempvar = $DB->get_record_sql("SELECT * FROM {report_engagement} WHERE course = $COURSE->id AND indicator = '$name'");
+			$querysettings->{"$name"} = $tempvar->configdata;
+		}
+		
         foreach ($indicators as $indicator) {
             $headers[] = get_string('pluginname', "engagementindicator_$indicator");
             $columns[] = "indicator_$indicator";
+			// for export
+			$headersforexport[] = get_string('pluginname', "engagementindicator_$indicator") . '_raw';
+			$columnsforexport[] = 'indicator_' . $indicator . '_raw';
+			$headersforexport[] = get_string('pluginname', "engagementindicator_$indicator") . '_weighted';
+			$columnsforexport[] = 'indicator_' . $indicator . '_weighted';
         }
         $headers[] = get_string('total');
         $columns[] = 'total';
+		// for export		
+		$headersforexport[] = get_string('total');
+		$columnsforexport[] = 'total';
 		
 		// determine if exporting extra data column
 		$params = array((int)$COURSE->id, 'reportextracolumn');
@@ -72,11 +97,22 @@ class report_engagement_renderer extends plugin_renderer_base {
 			$extracolumnname = $DB->get_field_sql("SELECT itemname FROM {grade_items} WHERE courseid = ? AND id = ?", $params);
 			$headers[] = $extracolumnname;
 			$columns[] = 'reportextracolumn';
+			// for export
+			$headersforexport[] = $extracolumnname;
+			$columnsforexport[] = 'reportextracolumn';
 		}
+		// if exporting data, set up a csvwriter instance
 		if ($exportcsv == 1) {
 			$csvwriter = new csv_export_writer();
-			$csvwriter->set_filename('report_engagement_' . date('Ymd_his' . '.csv'));
-			$csvwriter->add_data($headers);
+			$csvfilename = 'report_engagement_course' . $COURSE->id;
+			if (isset($querysettings->queryspecifydatetime) && $querysettings->queryspecifydatetime) {
+				// if query datetime limit is set, reflect in filename
+				$csvfilename .= '_' . 
+								date('Ymd_his', $querysettings->querystartdatetime) . '-' .
+								date('Ymd_his', $querysettings->queryenddatetime) ;
+			}
+			$csvwriter->filename = $csvfilename . '.csv';
+			$csvwriter->add_data($headersforexport);
 		}
 
         $table->define_headers($headers);
@@ -97,11 +133,14 @@ class report_engagement_renderer extends plugin_renderer_base {
 
         foreach ($data as $user => $ind_data) {
             $row = array();
+			// for export
+			$rowforexport = array();
 
-            $displayname = fullname($DB->get_record('user', array('id' => $user)));
-
+			$studentrecord = $DB->get_record('user', array('id' => $user));
+            $displayname = fullname($studentrecord);
             $url = new moodle_url('/report/engagement/index.php', array('id' => $COURSE->id, 'userid' => $user));
             $row[] = html_writer::link($url, $displayname);
+			$rowforexport[] = $studentrecord->idnumber;
             $total = 0;
             $total_raw = 0;
             foreach ($indicators as $indicator) {
@@ -115,19 +154,28 @@ class report_engagement_renderer extends plugin_renderer_base {
                 $weighted_value = sprintf("%.0f%%", $ind_value * $weight * 100);
                 $raw_value = sprintf("%.0f%%", 100 * $ind_value);
                 $row[] = $weighted_value . " ($raw_value)";
+				
+				// for export - first raw then weighted
+				$rowforexport[] = $raw_value;
+				$rowforexport[] = $weighted_value;
+				
                 $total += $ind_value * $weight;
                 $total_raw += $ind_value;
             }
             $row[] = sprintf("%.0f%%", $total * 100);
+			// for export
+			$rowforexport[] = sprintf("%.0f%%", $total * 100);
 			
 			// get data for extra column if needed
 			if ($extracolumn) {
 				$extradata = $DB->get_record_sql("SELECT * FROM {grade_grades} WHERE userid = $user AND itemid = $extracolumn");
 				$row[] = $extradata->finalgrade;
+				// for export
+				$rowforexport[] = $extradata->finalgrade;
 			}
 			// add data to csvwriter if exporting csv
 			if ($exportcsv == 1) {
-				$csvwriter->add_data($row);
+				$csvwriter->add_data($rowforexport);
 			}
 			
 			if (!$exportcsv) // only add data to table if displaying for user			
@@ -136,18 +184,13 @@ class report_engagement_renderer extends plugin_renderer_base {
 
         $html = $this->output->notification(get_string('reportdescription', 'report_engagement'));
         
-		// get global settings
-		$settingsnames = array('queryspecifydatetime', 'querystartdatetime', 'queryenddatetime');
-		$querysettings = new stdClass();
-		foreach ($settingsnames as $name) {
-			$tempvar = $DB->get_record_sql("SELECT * FROM {report_engagement} WHERE course = $COURSE->id AND indicator = '$name'");
-			$querysettings->{"$name"} = $tempvar->configdata;
-		}
 		// show query limits if necessary
 		if (isset($querysettings->queryspecifydatetime) && $querysettings->queryspecifydatetime) {
 			$html .= $this->output->notification('query limit set: from ' . date('Y-m-d h:i:s', $querysettings->querystartdatetime) . ' to ' . date('Y-m-d h:i:s', $querysettings->queryenddatetime));
 		}
-				
+		// TODO: show export csv button
+		
+		
 		ob_start();
         $table->finish_output();
         $html .= ob_get_clean();
