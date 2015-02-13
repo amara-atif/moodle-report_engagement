@@ -107,6 +107,7 @@ class report_engagement_renderer extends plugin_renderer_base {
 			$csvfilename = 'report_engagement_course' . $COURSE->id;
 			if (isset($querysettings->queryspecifydatetime) && $querysettings->queryspecifydatetime) {
 				// if query datetime limit is set, reflect in filename
+				date_default_timezone_set(usertimezone()); // hack, not sure why timezone is not reflected correctly here
 				$csvfilename .= '_' . 
 								date('Ymd_His', $querysettings->querystartdatetime) . '-' .
 								date('Ymd_His', $querysettings->queryenddatetime) ;
