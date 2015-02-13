@@ -114,8 +114,8 @@ if ($exportcsv == 1) {
 }
 
 $headers = array('username', 
-				 'forum total', 'forum new', 'forum replies', 'forum read', 
-				 'total logins', 'login average session length', 'average logins per week');
+				 'forum total postings', 'forum new', 'forum replies', 'forum read', 
+				 'total logins', 'average session length', 'average logins per week');
 
 if ($exportcsv == 1) {
 	$csvwriter->add_data($headers);
@@ -138,8 +138,10 @@ foreach ($indicators as $name => $path) {
 		if (empty($data)) {
 			foreach ($users as $userid) {
 				$data[$userid] = [];
-				$data[$userid][$name] = [];
 			}
+		}
+		foreach ($users as $userid) {
+			$data[$userid][$name] = [];
 		}
 		
 		switch ($name) {
@@ -156,13 +158,13 @@ foreach ($indicators as $name => $path) {
 				break;
 			case 'login':
 				foreach ($rawdata as $userid => $record) {
-					$data[$userid]['login']['totaltimes'] = $record['total'];
-					if ($record['total']) {
-						$data[$userid]['login']['averagesessionlength'] = array_sum($record['lengths']) / $record['total'];
+					$data[$userid]['login']['totaltimes'] = count($record['lengths']);
+					if ($record['total'] > 0) {
+						$data[$userid]['login']['averagesessionlength'] = array_sum($record['lengths']) / count($record['lengths']);
 						$data[$userid]['login']['averageperweek'] = array_sum($record['weeks']) / count($record['weeks']);
 					} else {
-						$data[$userid]['login']['averagesessionlength'] = 0;
-						$data[$userid]['login']['averageperweek'] = 0;						
+						$data[$userid]['login']['averagesessionlength'] = "";
+						$data[$userid]['login']['averageperweek'] = "";					
 					}
 				}
 				break;
@@ -184,8 +186,8 @@ foreach ($data as $userid => $record) {
 	$row[] = $record['forum']['replies'];
 	$row[] = $record['forum']['read'];
 	$row[] = $record['login']['totaltimes'];
-	$row[] = number_format($record['login']['averagesessionlength'], 1);
-	$row[] = number_format($record['login']['averageperweek'], 1);
+	$row[] = round($record['login']['averagesessionlength'], 1);
+	$row[] = round($record['login']['averageperweek'], 1);
 	$table->data[] = $row;
 	// add data to csvwriter if exporting csv
 	if ($exportcsv == 1) {
