@@ -108,8 +108,8 @@ class report_engagement_renderer extends plugin_renderer_base {
 			if (isset($querysettings->queryspecifydatetime) && $querysettings->queryspecifydatetime) {
 				// if query datetime limit is set, reflect in filename
 				$csvfilename .= '_' . 
-								date('Ymd_his', $querysettings->querystartdatetime) . '-' .
-								date('Ymd_his', $querysettings->queryenddatetime) ;
+								date('Ymd_His', $querysettings->querystartdatetime) . '-' .
+								date('Ymd_His', $querysettings->queryenddatetime) ;
 			}
 			$csvwriter->filename = $csvfilename . '.csv';
 			$csvwriter->add_data($headersforexport);
@@ -186,7 +186,7 @@ class report_engagement_renderer extends plugin_renderer_base {
         
 		// show query limits if necessary
 		if (isset($querysettings->queryspecifydatetime) && $querysettings->queryspecifydatetime) {
-			$html .= $this->output->notification('query limit set: from ' . date('Y-m-d h:i:s', $querysettings->querystartdatetime) . ' to ' . date('Y-m-d h:i:s', $querysettings->queryenddatetime));
+			$html .= $this->output->notification('query limit set: from ' . date('Y-m-d H:i:s', $querysettings->querystartdatetime) . ' to ' . date('Y-m-d H:i:s', $querysettings->queryenddatetime) . " [$querysettings->querystartdatetime $querysettings->queryenddatetime]");
 		}
 		// show export csv link
 		$html .= $this->output->action_link(new moodle_url('/report/engagement/index.php', array('id' => $COURSE->id, 'exportcsv' => 1)), 'Download CSV');
