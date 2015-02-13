@@ -69,6 +69,28 @@ $stradministration = get_string('administration');
 $strreports = get_string('reports');
 $renderer = $PAGE->get_renderer('report_engagement');
 
+
+
+/*$dat = $DB->get_records_sql("SELECT *
+                FROM {forum_read} fr
+                JOIN {forum} f ON (f.id = fr.forumid)
+                WHERE f.course = $COURSE->id");*/
+/*$dat = $DB->get_records_sql("SELECT * FROM {forum} where course = $COURSE->id");*/
+/*$dat = $DB->get_records_sql("SELECT p.id, p.userid, p.created, p.parent
+                FROM {forum_posts} p
+                JOIN {forum_discussions} d ON (d.id = p.discussion)
+                WHERE d.course = $COURSE->id ORDER BY p.created DESC LIMIT 50");*/
+//$dat = $DB->get_records_sql("SELECT * FROM {logstore_standard_log} WHERE courseid = $COURSE->id ORDER BY timecreated DESC LIMIT 50");
+/*$dat = $DB->get_records_sql("SELECT * FROM {log} WHERE course = $COURSE->id 
+	AND time > 1411999200 AND time < 1412085600
+	ORDER BY time DESC LIMIT 150");*/
+/*echo "<pre>";
+var_dump($dat);
+echo "</pre>";
+die();*/
+
+
+
 if (!$exportcsv) {
 	echo $OUTPUT->header();
 	echo $OUTPUT->heading('Quick aggregate query');
