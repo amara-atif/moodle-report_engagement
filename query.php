@@ -137,7 +137,8 @@ if ($exportcsv == 1) {
 
 $headers = array('username', 
 				 'forum total postings', 'forum new', 'forum replies', 'forum read', 
-				 'total logins', 'average session length', 'average logins per week');
+				 'total logins', 'average session length', 'average logins per week',
+				 'average days submission late', 'number overdue submitted', 'number overdue not submitted');
 
 if ($exportcsv == 1) {
 	$csvwriter->add_data($headers);
@@ -168,9 +169,6 @@ foreach ($indicators as $name => $path) {
 		
 		switch ($name) {
 			case 'forum':
-				/*echo "<pre>";
-				var_dump($rawdata);
-				echo "</pre>";*/
 				foreach ($rawdata->posts as $userid => $record) {
 					$data[$userid]['forum']['total'] = $record['total']; // total postings (not readings)
 					$data[$userid]['forum']['new'] = $record['new'];
@@ -191,7 +189,28 @@ foreach ($indicators as $name => $path) {
 				}
 				break;
 			case 'assessment':
-				// TODO
+				foreach ($rawdata->assessments as $assessment) {
+					foreach ($assessment->submissions as $userid => $submission) {
+						if ($submission['due'] > 0 and $submission['submitted'] > 0) {
+							$interval = $submission['due'] - $submission['submitted'];
+							$data[$userid]['assessment']['totaldatediff'] += $interval;
+							$data[$userid]['assessment']['numbersubmissions'] += 1;
+							if ($interval < 0) {
+								if ($submission['submitted'] > 0) {
+									$data[$userid]['assessment']['numberoverduesubmitted'] += 1;
+								} else {
+									$data[$userid]['assessment']['numberoverduenotsubmitted'] += 1;
+								}
+							}
+						}
+					}
+				}
+				/*
+				echo "<pre>";
+				var_dump($rawdata);
+				echo "</pre>";
+				die();
+				*/				
 				break;
 		}
 	}
@@ -210,6 +229,18 @@ foreach ($data as $userid => $record) {
 	$row[] = $record['login']['totaltimes'];
 	$row[] = round($record['login']['averagesessionlength'], 1);
 	$row[] = round($record['login']['averageperweek'], 1);
+	try {
+		$averagedatediff = $record['assessment']['totaldatediff'] / $record['assessment']['numbersubmissions'];
+		$averagedatediff = round($averagedatediff / 86400, 1);
+		if ($averagedatediff > 0) {
+			$averagedatediff = 0;
+		}
+	} catch (Exception $e) {
+		$averagedatediff = '';
+	}
+	$row[] = abs($averagedatediff);
+	$row[] = $record['assessment']['numberoverduesubmitted'];
+	$row[] = $record['assessment']['numberoverduenotsubmitted'];
 	$table->data[] = $row;
 	// add data to csvwriter if exporting csv
 	if ($exportcsv == 1) {
