@@ -145,7 +145,6 @@ if ($exportcsv == 1) {
 }
 
 $data = array();
-
 foreach ($indicators as $name => $path) {
 	if (file_exists("$path/indicator.class.php")) {
 		require_once("$path/indicator.class.php");
@@ -157,7 +156,6 @@ foreach ($indicators as $name => $path) {
 		$rawdata = $indicator->get_course_rawdata();
 		// fetch array of userids
 		$users = $indicator->get_course_users();
-		
 		if (empty($data)) {
 			foreach ($users as $userid) {
 				$data[$userid] = [];
@@ -191,11 +189,12 @@ foreach ($indicators as $name => $path) {
 			case 'assessment':
 				foreach ($rawdata->assessments as $assessment) {
 					foreach ($assessment->submissions as $userid => $submission) {
-						if ($submission['due'] > 0 and $submission['submitted'] > 0) {
-							$interval = $submission['due'] - $submission['submitted'];
-							$data[$userid]['assessment']['totaldatediff'] += $interval;
+						if ($submission['due'] > 0) {
 							$data[$userid]['assessment']['numbersubmissions'] += 1;
+							$interval = $submission['due'] - $submission['submitted'];
+							//$data[$userid]['assessment']['totaldatediff'] += $interval;
 							if ($interval < 0) {
+								$data[$userid]['assessment']['totallatedatediff'] += $interval;
 								if ($submission['submitted'] > 0) {
 									$data[$userid]['assessment']['numberoverduesubmitted'] += 1;
 								} else {
@@ -230,7 +229,7 @@ foreach ($data as $userid => $record) {
 	$row[] = round($record['login']['averagesessionlength'], 1);
 	$row[] = round($record['login']['averageperweek'], 1);
 	try {
-		$averagedatediff = $record['assessment']['totaldatediff'] / $record['assessment']['numbersubmissions'];
+		$averagedatediff = $record['assessment']['totallatedatediff'] / $record['assessment']['numberoverduesubmitted'];
 		$averagedatediff = round($averagedatediff / 86400, 1);
 		if ($averagedatediff > 0) {
 			$averagedatediff = 0;
